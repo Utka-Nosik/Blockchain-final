@@ -1,0 +1,143 @@
+:root {
+    --cinna-blue: #b3e5fc;
+    --cinna-dark-blue: #81d4fa;
+    --cinna-pink: #fce4ec;
+    --cinna-white: #ffffff;
+    --text-color: #546e7a;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Comfortaa', cursive;
+    background-color: #e1f5fe;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--text-color);
+    overflow-x: hidden;
+}
+
+.cloud-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+    background: url('https://www.transparentpng.com/download/cloud/white-cloud-cut-out-png-8.png') repeat-x;
+    background-size: contain;
+    opacity: 0.3;
+    z-index: -1;
+    animation: moveClouds 100s linear infinite;
+}
+
+@keyframes moveClouds {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+.cabinet-container {
+    background: rgba(255, 255, 255, 0.9);
+    border: 4px solid var(--cinna-blue);
+    border-radius: 40px;
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    box-shadow: 0 20px 40px rgba(129, 212, 250, 0.2);
+    text-align: center;
+    backdrop-filter: blur(5px);
+}
+
+.cinnamoroll-avatar img {
+    width: 120px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.1));
+}
+
+h1 {
+    font-size: 28px;
+    margin: 10px 0;
+}
+
+.blue-text {
+    color: var(--cinna-dark-blue);
+}
+
+.subtitle {
+    font-size: 14px;
+    color: #90a4ae;
+    margin-bottom: 30px;
+}
+
+.main-btn {
+    background: linear-gradient(135deg, var(--cinna-blue), var(--cinna-dark-blue));
+    color: white;
+    border: none;
+    padding: 15px 35px;
+    border-radius: 50px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 8px 15px rgba(129, 212, 250, 0.4);
+    transition: 0.3s transform;
+}
+
+.main-btn:hover {
+    transform: translateY(-3px) scale(1.05);
+}
+
+.secondary-btn {
+    background-color: var(--cinna-pink);
+    color: #f06292;
+    border: 2px dashed #f06292;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-family: inherit;
+    font-weight: bold;
+}
+
+.info-card {
+    margin-top: 30px;
+    background: #f1faff;
+    border-radius: 30px;
+    padding: 25px;
+}
+
+.hidden {
+    display: none;
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.value {
+    font-weight: bold;
+    color: var(--cinna-dark-blue);
+    word-break: break-all;
+    max-width: 200px;
+}
+
+.divider {
+    height: 2px;
+    background: var(--cinna-blue);
+    margin: 20px 0;
+    border-radius: 2px;
+}
+
+.token-amount {
+    font-size: 36px;
+    font-weight: bold;
+    color: #ffb74d;
+}
+
+.token-symbol {
+    font-weight: bold;
+    color: #ffa726;
+}

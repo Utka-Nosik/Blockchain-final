@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Cabinet - Cinnamoroll Master</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="cloud-bg"></div>
+
+<div class="cabinet-container">
+    <header>
+        <div class="cinnamoroll-avatar">
+            <img src="https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSwewNDUmZpxXVrTad969kqgCsqIOmNTzWQMRE_QJqFOeDgtnprKabKlm0BhSLl" alt="Cinnamoroll">
+        </div>
+        <h1>Personal <span class="blue-text">Cabinet</span></h1>
+        <p class="subtitle">Welcome back, Cinnamonroll Master! ✨</p>
+    </header>
+
+    <div class="action-area">
+        <button id="connectBtn" class="main-btn">
+            <span class="btn-icon">☁️</span> Connect Wallet
+        </button>
+    </div>
+
+    <div id="infoBlock" class="info-card hidden">
+        <div class="data-row">
+            <span class="label">Address:</span>
+            <span id="userAddress" class="value">0x...</span>
+        </div>
+
+        <div class="data-row">
+            <span class="label">ETH Balance:</span>
+            <span id="ethBalance" class="value">0.00</span> <span class="unit">ETH</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="token-section">
+            <h3>Your $CUTE Balance</h3>
+            <div class="token-display">
+                <span id="tokenBalance" class="token-amount">0</span>
+                <span class="token-symbol">CUTE</span>
+            </div>
+            <button id="addTokenBtn" class="secondary-btn">
+                Add $CUTE to MetaMask 💖
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

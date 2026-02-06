@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Kitty Cafe Gacha</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #ffe6f0; 
+            font-family: 'Comic Sans MS', 'Arial', sans-serif;
+            overflow: hidden; 
+            user-select: none; 
+        }
+
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #fff0f5, #ffb7d5);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            cursor: pointer;
+        }
+        .start-btn {
+            font-size: 35px;
+            font-weight: bold;
+            background: #ff69b4;
+            color: white;
+            padding: 20px 60px;
+            border-radius: 50px;
+            border: 4px solid white;
+            box-shadow: 0 10px 20px rgba(255, 105, 180, 0.4);
+            animation: pulseBtn 1.5s infinite;
+        }
+
+        #main-menu {
+            display: none; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-image: radial-gradient(#fff 20%, transparent 20%), radial-gradient(#fff 20%, transparent 20%);
+            background-position: 0 0, 50px 50px;
+            background-size: 100px 100px;
+            background-color: #ffe6f0;
+        }
+
+        h1 {
+            color: #ff69b4;
+            font-size: 45px;
+            text-shadow: 3px 3px 0px white, 5px 5px 0px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .cards-container { display: flex; gap: 40px; }
+
+        .card {
+            background: white;
+            border: 5px solid #ffb7d5;
+            border-radius: 25px;
+            padding: 20px;
+            text-align: center;
+            width: 220px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 0px #ffb7d5;
+            position: relative;
+            top: 0;
+        }
+        .card:hover {
+            transform: translateY(-10px);
+            border-color: #ff69b4;
+            box-shadow: 0 20px 0px #ff9ec6;
+        }
+        .card:active {
+            transform: translateY(5px);
+            box-shadow: 0 5px 0px #ff9ec6;
+        }
+
+        .emoji-icon { font-size: 90px; margin-bottom: 10px; display: block; }
+        
+        .btn-spin {
+            background: #ff69b4; color: white; border: none;
+            padding: 12px 30px; border-radius: 30px;
+            font-size: 20px; font-weight: bold; cursor: pointer;
+            margin-top: 10px;
+        }
+
+        #video-screen {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: black; z-index: 100;
+        }
+        video { width: 100%; height: 100%; object-fit: cover; }
+
+        #reward-screen {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); 
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            backdrop-filter: blur(5px); 
+        }
+
+        .reward-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 600px;
+            height: 600px;
+        }
+
+        .sunburst {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: repeating-conic-gradient(
+                from 0deg,
+                #ffd700 0deg 20deg, 
+                rgba(255, 215, 0, 0.1) 20deg 40deg
+            );
+            border-radius: 50%;
+            z-index: 1; 
+            animation: spinBg 15s linear infinite; 
+            
+            box-shadow: 0 0 50px #ffd700, 0 0 100px #ffeb3b; 
+            opacity: 0.8;
+            mix-blend-mode: screen;
+        }
+
+        .reward-image {
+            position: relative;
+            z-index: 5; 
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.5));
+            animation: floatItem 2.5s ease-in-out infinite; 
+        }
+
+        .rarity-text {
+            position: absolute;
+            top: 20px;
+            z-index: 10;
+            font-size: 70px;
+            font-weight: 900;
+            color: #ffeb3b; 
+            letter-spacing: 5px;
+            text-shadow: 
+                4px 4px 0 #d946ef,
+                -2px -2px 0 #d946ef,
+                0 0 30px gold;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .item-name {
+            position: absolute;
+            bottom: 100px;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            z-index: 10;
+            text-shadow: 0 2px 5px black;
+        }
+
+        .btn-confirm {
+            position: absolute;
+            bottom: 20px;
+            z-index: 10;
+            background: linear-gradient(to right, #4ade80, #22c55e);
+            color: white;
+            border: none;
+            padding: 15px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #15803d, 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
+        }
+        .btn-confirm:active { transform: translateY(5px); box-shadow: none; }
+
+        @keyframes spinBg { 
+            0% { transform: rotate(0deg) scale(1); opacity: 0.8; }
+            50% { transform: rotate(180deg) scale(1.1); opacity: 1; } 
+            100% { transform: rotate(360deg) scale(1); opacity: 0.8; } 
+        }
+        
+        @keyframes floatItem {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-30px); } 
+        }
+
+        @keyframes pulseBtn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    </style>
+</head>
+<body>
+
+    <audio id="bg-music" loop>
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="start-screen" onclick="enterSite()">
+        <button class="start-btn">TAP TO PLAY 🎵</button>
+        <p style="margin-top:20px; color: #d946ef; font-weight: bold;">Click anywhere to start music</p>
+    </div>
+
+    <div id="main-menu">
+        <h1>🎀 Kitty Cafe Gacha 🎀</h1>
+        
+        <div class="cards-container">
+            <div class="card" onclick="startGacha(1)">
+                <span class="emoji-icon">🍹</span>
+                <h3>Cocktail</h3>
+                <p>10 Tokens</p>
+                <div class="btn-spin">SPIN</div>
+            </div>
+            <div class="card" onclick="startGacha(2)">
+                <span class="emoji-icon">🍦</span>
+                <h3>Ice Cream</h3>
+                <p>15 Tokens</p>
+                <div class="btn-spin">SPIN</div>
+            </div>
+            <div class="card" onclick="startGacha(3)">
+                <span class="emoji-icon">🍰</span>
+                <h3>Cake</h3>
+                <p>20 Tokens</p>
+                <div class="btn-spin">SPIN</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="video-screen">
+        <video id="gacha-video" playsinline>
+        </video>
+    </div>
+
+    <div id="reward-screen">
+        <div class="reward-container">
+            <div class="sunburst"></div>
+            
+            <div class="rarity-text">✨ EPIC ✨</div>
+
+            <img id="reward-img" src="" class="reward-image" alt="Reward">
+            
+            <div id="reward-name" class="item-name">Item Name</div>
+
+            <button class="btn-confirm" onclick="closeReward()">CONFIRM ✅</button>
+        </div>
+    </div>
+
+    <script>
+        const startScreen = document.getElementById('start-screen');
+        const mainMenu = document.getElementById('main-menu');
+        const videoScreen = document.getElementById('video-screen');
+        const videoPlayer = document.getElementById('gacha-video');
+        const rewardScreen = document.getElementById('reward-screen');
+        const rewardImg = document.getElementById('reward-img');
+        const rewardName = document.getElementById('reward-name');
+        
+        const music = document.getElementById('bg-music');
+        music.volume = 0.4;
+
+        const gachaData = {
+            1: { video: "video1.mp4", image: "item1.png", name: "Super Kitty Cocktail" },
+            2: { video: "video2.mp4", image: "item2.png", name: "Rainbow Ice Cream" },
+            3: { video: "video3.mp4", image: "item3.png", name: "Golden Birthday Cake" }
+        };
+
+        function enterSite() {
+            startScreen.style.display = 'none';
+            mainMenu.style.display = 'flex';
+            music.play(); 
+        }
+
+        function startGacha(id) {
+            const data = gachaData[id];
+
+            music.pause(); 
+            
+            mainMenu.style.display = 'none';
+            videoScreen.style.display = 'block';
+
+            videoPlayer.src = data.video;
+            videoPlayer.volume = 1.0; 
+            videoPlayer.play();
+
+            rewardImg.src = data.image;
+            rewardName.innerText = data.name;
+        }
+
+        videoPlayer.onended = function() {
+            music.play();
+            rewardScreen.style.display = 'flex'; 
+        };
+
+        function closeReward() {
+            rewardScreen.style.display = 'none';
+            videoScreen.style.display = 'none';
+            videoPlayer.src = ""; 
+            
+            mainMenu.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

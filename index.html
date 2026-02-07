@@ -268,106 +268,21 @@
     </div>
 
     <script>
-        const TOKEN_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; 
-        const CF_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+        const TOKEN_ADDRESS = "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0"; 
+        const NFT_ADDRESS = "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"; 
+        const CF_ADDRESS = "0x9A676e781A523b5d0C0e43731313A708CB607508";
 
-        const CF_ABI = [
-            "function contribute(uint256 _id) public payable",
-            "function campaignCount() public view returns (uint256)",
-            "function campaigns(uint256) public view returns (address owner, string title, uint256 goal, uint256 deadline, uint256 amountRaised, bool finalized)",
-            "function createCampaign(string memory _title, uint256 _goal, uint256 _durationInDays) public"
-        ];
-        const TOKEN_ABI = [
-            "function balanceOf(address) public view returns (uint256)",
-            "function decimals() public view returns (uint8)"
-        ];
+        const TOKEN_ABI = ["function balanceOf(address) view returns (uint256)", "function decimals() view returns (uint8)", "function burn(uint256 amount) external"];
+        const CF_ABI = ["function contribute(uint256 _id) public payable", "function campaignCount() public view returns (uint256)", "function createCampaign(string,uint256,uint256) public"];
+        const NFT_ABI = ["function mintItem(address player, string memory tokenURI) public returns (uint256)"];
 
-        let provider, signer, cfContract, tokenContract;
+        let provider, signer, tokenContract, cfContract, nftContract;
         let userAddress = "";
-        let tokens = 0; 
+        let tokens = 0;
         let eth = 0;
-        let inventory = [];
+        let currentReward = null;
         let promoActive = null;
-
-        const music = document.getElementById('bg-music');
-        music.volume = 0.4;
-
-        async function connectWallet() {
-            if (window.ethereum) {
-                try {
-                    provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    signer = provider.getSigner();
-                    userAddress = await signer.getAddress();
-                    
-                    cfContract = new ethers.Contract(CF_ADDRESS, CF_ABI, signer);
-                    tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
-
-                    document.getElementById('wallet-address').innerText = userAddress.substring(0,6) + "..." + userAddress.substring(38);
-                    document.getElementById('wallet-address').style.display = 'block';
-                    document.querySelector('.connect-mm').innerText = "Connected ✅";
-                    
-                    await updateBalances(); 
-                    checkAndCreateInitialCampaign();
-                } catch (e) { alert("Connect error!"); }
-            } else { alert("Install MetaMask!"); }
-        }
-
-        async function updateBalances() {
-            if (!userAddress || !tokenContract) return;
-            try {
-                const rawEthBalance = await provider.getBalance(userAddress);
-                const ethFormatted = ethers.utils.formatEther(rawEthBalance);
-                document.getElementById('ui-eth').innerText = parseFloat(ethFormatted).toFixed(4);
-
-                const rawTokenBalance = await tokenContract.balanceOf(userAddress);
-                const tokensFormatted = ethers.utils.formatUnits(rawTokenBalance, 18);
-                
-                tokens = Math.floor(parseFloat(tokensFormatted));
-                document.querySelectorAll('#ui-tokens, #ui-tokens-p').forEach(el => el.innerText = tokens);
-                
-                console.log("Balances updated:", ethFormatted, tokens);
-            } catch (err) {
-                console.error("Critical balance error:", err);
-            }
-        }
-        async function donate() {
-            const val = document.getElementById('donate-input').value;
-            if (!val || val <= 0) return alert("Enter amount!");
-            if (!cfContract) return alert("Connect MetaMask first!");
-
-            try {
-                const tx = await cfContract.contribute(0, { 
-                    value: ethers.utils.parseEther(val) 
-                });
-                alert("Transaction sent! Wait...");
-                await tx.wait(); 
-                alert("Success! You got KITTY tokens!");
-                await updateBalances();
-            } catch (e) { alert("Error: " + e.message); }
-        }
-
-        async function checkAndCreateInitialCampaign() {
-            const count = await cfContract.campaignCount();
-            if (count == 0) {
-                const tx = await cfContract.createCampaign("Main Cafe Opening", ethers.utils.parseEther("10"), 30);
-                await tx.wait();
-            }
-        }
-
-        function startGame() {
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('main-ui').style.display = 'block';
-            music.play();
-        }
-
-        function setPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('page-' + id).classList.add('active');
-            const map = ['gacha', 'market', 'donate', 'profile'];
-            document.querySelectorAll('.nav-item')[map.indexOf(id)].classList.add('active');
-        }
+        let inventory = []; // При старте пустой
 
         const rarities = {
             common: { color: "#a0aec0", name: "Common" },
@@ -383,31 +298,147 @@
             cake: { video: "cake_spin.mp4", prefix: "cake" }
         };
 
-        function spin(type, cost) {
-            if (tokens < cost) return alert("Not enough $KITTY tokens! Go to Donate page.");
+        const music = document.getElementById('bg-music');
+        music.volume = 0.4;
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'block';
+            music.play();
+            // На старте инвентарь не рендерим, пока нет коннекта
+        }
+
+        function setPage(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + id).classList.add('active');
             
-            tokens -= cost;
-            document.querySelectorAll('#ui-tokens, #ui-tokens-p').forEach(el => el.innerText = tokens);
+            const map = ['gacha', 'market', 'donate', 'profile'];
+            const index = map.indexOf(id);
+            if(index !== -1) document.querySelectorAll('.nav-item')[index].classList.add('active');
 
-            document.getElementById('main-ui').style.display = 'none';
-            music.volume = 0.1;
+            // Если зашли в профиль, обновляем список вещей
+            if(id === 'profile') renderInventory();
+        }
+        
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    signer = provider.getSigner();
+                    userAddress = await signer.getAddress();
+                    
+                    tokenContract = new ethers.Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
+                    cfContract = new ethers.Contract(CF_ADDRESS, CF_ABI, signer);
+                    nftContract = new ethers.Contract(NFT_ADDRESS, NFT_ABI, signer);
 
-            let rKey = 'common';
-            const rand = Math.random() * 100;
-            if(rand > 60) rKey = 'rare';
-            if(rand > 85) rKey = 'epic';
-            if(rand > 98) rKey = 'legendary';
-            if(rand > 99.5) rKey = 'mythic';
+                    // Обновляем UI только для ПРОФИЛЯ
+                    document.getElementById('wallet-address').innerText = userAddress.substring(0,6) + "..." + userAddress.substring(38);
+                    document.getElementById('wallet-address').style.display = 'block';
+                    document.querySelector('#page-profile .connect-mm').innerText = "Connected ✅";
 
-            const config = gachaConfig[type];
-            currentReward = { type: type, name: "Cafe Special", rarity: rKey, image: `${config.prefix}_${rKey}.png` };
+                    await updateBalances();
+                    await checkAndCreateInitialCampaign();
 
-            const videoLayer = document.getElementById('video-layer');
-            const video = document.getElementById('gacha-video');
-            videoLayer.style.display = 'block';
-            video.src = config.video;
-            video.play();
-            video.onended = showReward;
+                    // Загружаем вещи из памяти именно для этого кошелька
+                    const savedInv = localStorage.getItem('kitty_inv_' + userAddress.toLowerCase());
+                    inventory = savedInv ? JSON.parse(savedInv) : [];
+                    renderInventory();
+
+                } catch (e) { console.error(e); alert("Connect error!"); }
+            } else { alert("Install MetaMask!"); }
+        }
+
+        async function updateBalances() {
+            if (!userAddress || !tokenContract) return;
+            try {
+                const b = await provider.getBalance(userAddress);
+                eth = ethers.utils.formatEther(b);
+                document.getElementById('ui-eth').innerText = parseFloat(eth).toFixed(2);
+                
+                const tb = await tokenContract.balanceOf(userAddress);
+                tokens = Math.floor(parseFloat(ethers.utils.formatUnits(tb, 18)));
+                document.querySelectorAll('#ui-tokens, #ui-tokens-p').forEach(el => el.innerText = tokens);
+            } catch(e) { console.error(e); }
+        }
+
+        async function donate() {
+            if (!cfContract) return alert("Connect MetaMask in Profile first!");
+            const val = document.getElementById('donate-input').value;
+            if (!val || val <= 0) return alert("Enter amount!");
+            try {
+                const tx = await cfContract.contribute(0, { value: ethers.utils.parseEther(val) });
+                alert("Wait for confirmation...");
+                await tx.wait();
+                alert("Tokens received! 💖");
+                await updateBalances();
+            } catch (e) { alert("Donation failed!"); }
+        }
+
+        async function checkAndCreateInitialCampaign() {
+            try {
+                const count = await cfContract.campaignCount();
+                if (count == 0) {
+                    const tx = await cfContract.createCampaign("Kitty Cafe", ethers.utils.parseEther("100"), 30);
+                    await tx.wait();
+                }
+            } catch (e) { console.log("Campaign exists"); }
+        }
+
+        function applyPromo() {
+            const val = document.getElementById('promo-code').value.toUpperCase().trim();
+            if (val === 'MIF' || val === 'LEG') {
+                promoActive = val;
+                document.getElementById('promo-status').innerText = `✨ ${val} ACTIVE ✨`;
+                document.getElementById('promo-status').style.display = 'block';
+                document.getElementById('promo-status').style.color = 'green';
+            } else { alert("Wrong code!"); }
+        }
+
+        async function spin(type, cost) {
+            if (!tokenContract || !userAddress) return alert("Connect Wallet in Profile first!");
+            if (tokens < cost) return alert("Not enough tokens! Donate ETH.");
+
+            try {
+                // Списываем в блокчейне
+                const amountToBurn = ethers.utils.parseUnits(cost.toString(), 18);
+                const tx = await tokenContract.burn(amountToBurn);
+                await tx.wait(); 
+                await updateBalances();
+
+                // Логика шансов
+                let rKey = 'common';
+                const rand = Math.random() * 100;
+                if (promoActive === 'MIF') rKey = 'mythic';
+                else if (promoActive === 'LEG') rKey = 'legendary';
+                else {
+                    if(rand > 60) rKey = 'rare';
+                    if(rand > 85) rKey = 'epic';
+                    if(rand > 98) rKey = 'legendary';
+                    if(rand > 99.5) rKey = 'mythic';
+                }
+                promoActive = null; 
+                document.getElementById('promo-status').style.display = 'none';
+
+                currentReward = { type: type, name: type.toUpperCase(), rarity: rKey, image: `${type}_${rKey}.png` };
+
+                // Видео
+                document.getElementById('main-ui').style.display = 'none';
+                const vl = document.getElementById('video-layer');
+                const v = document.getElementById('gacha-video');
+                vl.style.display = 'block';
+                v.src = `${type}_spin.mp4`;
+                v.play();
+                v.onended = showReward;
+
+            } catch (e) { alert("Transaction failed."); }
+        }
+
+        function skipVideo() {
+            const v = document.getElementById('gacha-video');
+            v.pause();
+            showReward();
         }
 
         function showReward() {
@@ -422,24 +453,49 @@
             setTimeout(() => overlay.classList.add('show'), 10);
         }
 
-        function claimReward() {
+        async function claimReward() {
+            // Сохраняем локально именно для текущего юзера
+            inventory.push(currentReward);
+            if(userAddress) {
+                localStorage.setItem('kitty_inv_' + userAddress.toLowerCase(), JSON.stringify(inventory));
+            }
+
+            // Минтим NFT в блокчейн
+            if (nftContract && userAddress) {
+                try {
+                    const tx = await nftContract.mintItem(userAddress, currentReward.image);
+                    console.log("NFT Minting...");
+                } catch (e) { console.warn("NFT Mint failed"); }
+            }
+
+            renderInventory();
             document.getElementById('reward-overlay').classList.remove('show');
             setTimeout(() => {
                 document.getElementById('reward-overlay').style.display = 'none';
                 document.getElementById('video-layer').style.display = 'none';
                 document.getElementById('main-ui').style.display = 'block';
                 music.volume = 0.4;
-                inventory.push(currentReward);
-                renderInventory();
             }, 300);
         }
 
         function renderInventory() {
             const box = document.getElementById('inventory');
+            if(!box) return;
             box.innerHTML = "";
+            
+            if(!userAddress) {
+                box.innerHTML = "<p>Connect wallet to see your collection 🎀</p>";
+                return;
+            }
+
             inventory.forEach(item => {
-                const color = rarities[item.rarity].color;
-                box.innerHTML += `<div style="width:60px; height:60px; border:2px solid ${color}; border-radius:10px; display:flex; align-items:center; justify-content:center; background:white; margin:5px;"><img src="${item.image}" style="width:40px;"></div>`;
+                const color = rarities[item.rarity]?.color || "#ccc";
+                box.innerHTML += `
+                    <div style="width:70px; height:70px; border:3px solid ${color}; border-radius:15px; background:white; position:relative; display:flex; align-items:center; justify-content:center; margin:5px;">
+                        <img src="${item.image}" style="width:50px; height:50px; object-fit:contain;">
+                        <div style="position:absolute; bottom:-5px; font-size:8px; background:${color}; color:white; padding:2px 5px; border-radius:10px;">${item.rarity}</div>
+                    </div>
+                `;
             });
         }
     </script>
